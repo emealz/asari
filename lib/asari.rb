@@ -203,7 +203,7 @@ class Asari
     url = "http://doc-#{search_domain}.#{aws_region}.cloudsearch.amazonaws.com/#{api_version}/documents/batch"
     response = HTTParty.post(url, body: doc_batch.to_json, headers: { 'Content-Type' => 'application/json' })
 
-    #raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{response.body[:errors].size} errors: #{response.body[:errors].join(';')}") if response.body[:status] == 'error'
+    raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{response.body[:errors].size} errors: #{response.body[:errors].join(';')}") if response.body[:status] == 'error'
 
     response.body
   end
