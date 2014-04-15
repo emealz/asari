@@ -88,9 +88,9 @@ class Asari
         end
         data = {}
         self.asari_fields.each do |field|
-          data[field] = obj.send(field) || ""
+          data[field] = obj.send(field)
         end
-        self.asari_instance.add_item(obj.send(:id), data)
+        self.asari_instance.add_item(obj, data)
       rescue Asari::DocumentUpdateException => e
         self.asari_on_error(e)
       end
@@ -108,7 +108,7 @@ class Asari
         self.asari_fields.each do |field|
           data[field] = obj.send(field)
         end
-        self.asari_instance.update_item(obj.send(:id), data)
+        self.asari_instance.update_item(obj, data)
       rescue Asari::DocumentUpdateException => e
         self.asari_on_error(e)
       end
@@ -116,7 +116,7 @@ class Asari
       # Internal: method for removing a soon-to-be deleted item from the CloudSearch
       # index. Should probably only be called from asari_remove_from_index above.
       def asari_remove_item(obj)
-        self.asari_instance.remove_item(obj.send(:id))
+        self.asari_instance.remove_item(obj)
       rescue Asari::DocumentUpdateException => e
         self.asari_on_error(e)
       end
@@ -133,7 +133,7 @@ class Asari
       end
 
       # Public: method for searching the index for the specified term and
-      #   returning all model objects that match. 
+      #   returning all model objects that match.
       #
       # Returns: a list of all matching AR model objects, or an empty list if no
       #   records are found that match.
@@ -142,7 +142,7 @@ class Asari
       #   communicating with the CloudSearch server.
       def asari_find(term, options = {})
         records = self.asari_instance.search(term, options)
-        ids = records.map { |id| id.to_i }
+        ids = records.map { |r| r["id"].to_i if r["id"].present? }
 
         records.replace(Array(self.where("id in (?)", ids)))
       end

@@ -3,6 +3,8 @@ require "asari/version"
 require "asari/collection"
 require "asari/exceptions"
 require "asari/geography"
+require "asari/document_batch"
+require "asari/document"
 
 require "httparty"
 
@@ -40,7 +42,7 @@ class Asari
   # CloudSearch API).
   #
   def api_version
-    @api_version || "2011-02-01"
+    @api_version || "2013-01-01"
   end
 
   # Public: returns the current aws_region, or the sensible default of
@@ -70,11 +72,16 @@ class Asari
     bq = boolean_query(options[:filter]) if options[:filter]
     page_size = options[:page_size].nil? ? 10 : options[:page_size].to_i
 
-    url = "http://search-#{search_domain}.#{aws_region}.cloudsearch.amazonaws.com/#{api_version}/search"
-    url += "?q=#{CGI.escape(term.to_s)}"
-    url += "&bq=#{CGI.escape(bq)}" if options[:filter]
+    url = "https://search-#{search_domain}.#{aws_region}.cloudsearch.amazonaws.com/#{api_version}/search"
+
+    if options[:filter].present?
+      url += "?q=#{CGI.escape(bq)}&q.parser=structured"
+    else
+      url += "?q=#{CGI.escape(term.to_s)}"
+    end
+
     url += "&size=#{page_size}"
-    url += "&return-fields=#{options[:return_fields].join ','}" if options[:return_fields]
+    url += "&return=#{options[:return].join ','}" if options[:return]
 
     if options[:page]
       start = (options[:page].to_i - 1) * page_size
@@ -103,50 +110,50 @@ class Asari
 
   # Public: Add an item to the index with the given ID.
   #
-  #     id - the ID to associate with this document
+  #     obj - the object to associate with this document
   #     fields - a hash of the data to associate with this document. This
   #       needs to match the search fields defined in your CloudSearch domain.
   #
   # Examples:
   #
-  #     @asari.update_item("4", { :name => "Party Pooper", :email => ..., ... }) #=> nil
+  #     @asari.add_item(<#>, { :name => "Party Pooper", :email => ..., ... }) #=> nil
   #
   # Returns: nil if the request is successful.
   #
   # Raises: DocumentUpdateException if there's an issue communicating the
   #   request to the server.
   #
-  def add_item(id, fields)
+  def add_item(obj, fields)
     return nil if self.class.mode == :sandbox
-    query = { "type" => "add", "id" => id.to_s, "version" => Time.now.to_i, "lang" => "en" }
+    query = { "type" => "add", "id" => obj.id.to_s, "version" => Time.now.to_i, "lang" => "en" }
     fields.each do |k,v|
       fields[k] = convert_date_or_time(fields[k])
       fields[k] = "" if v.nil?
     end
 
     query["fields"] = fields
-    doc_request(query)
+    doc_request(query, obj)
   end
 
-  # Public: Update an item in the index based on its document ID.
+  # Public: Update an item in the index based on its document object.
   #   Note: As of right now, this is the same method call in CloudSearch
   #   that's utilized for adding items. This method is here to provide a
   #   consistent interface in case that changes.
   #
   # Examples:
   #
-  #     @asari.update_item("4", { :name => "Party Pooper", :email => ..., ... }) #=> nil
+  #     @asari.update_item(<#>, { :name => "Party Pooper", :email => ..., ... }) #=> nil
   #
   # Returns: nil if the request is successful.
   #
   # Raises: DocumentUpdateException if there's an issue communicating the
   #   request to the server.
   #
-  def update_item(id, fields)
-    add_item(id, fields)
+  def update_item(obj, fields)
+    add_item(obj, fields)
   end
 
-  # Public: Remove an item from the index based on its document ID.
+  # Public: Remove an item from the index based on its document object.
   #
   # Examples:
   #
@@ -160,16 +167,16 @@ class Asari
   #   request).
   # Raises: DocumentUpdateException if there's an issue communicating the
   #   request to the server.
-  def remove_item(id)
+  def remove_item(obj)
     return nil if self.class.mode == :sandbox
 
-    query = { "type" => "delete", "id" => id.to_s, "version" => Time.now.to_i }
-    doc_request query
+    query = { "type" => "delete", "id" => obj.id.to_s, "version" => Time.now.to_i }
+    doc_request(query)
   end
 
   # Internal: helper method: common logic for queries against the doc endpoint.
   #
-  def doc_request(query)
+  def doc_request(query, obj = nil)
     endpoint = "http://doc-#{search_domain}.#{aws_region}.cloudsearch.amazonaws.com/#{api_version}/documents/batch"
 
     options = { :body => [query].to_json, :headers => { "Content-Type" => "application/json"} }
@@ -182,11 +189,23 @@ class Asari
       raise ae
     end
 
-    unless response.response.code == "200"
+    if response.response.code == "200"
+      obj.send(:update_cloud_search_timestamps) if obj.present?
+    else
+      puts response
       raise Asari::DocumentUpdateException.new("#{response.response.code}: #{response.response.msg}")
     end
 
     nil
+  end
+
+  def doc_batch(doc_batch)
+    url = "http://doc-#{search_domain}.#{aws_region}.cloudsearch.amazonaws.com/#{api_version}/documents/batch"
+    response = HTTParty.post(url, body: doc_batch.to_json, headers: { 'Content-Type' => 'application/json' })
+
+    #raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{response.body[:errors].size} errors: #{response.body[:errors].join(';')}") if response.body[:status] == 'error'
+
+    response.body
   end
 
   protected

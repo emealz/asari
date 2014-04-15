@@ -86,9 +86,9 @@ with will\_paginate:
 By default Asari only returns the document id's for any hits returned from a search. 
 If you have result_enabled a index field you can have asari resturn that field in the
 result set without having to hit a database to get the results.  Simply pass the 
-:return_fields option with an array of fields
+:return option with an array of fields
 
-    results = asari.search "Beavis", :return_fields => ["name", "address"]
+    results = asari.search "Beavis", :return => ["name", "address"]
 
 The result will look like this
 
