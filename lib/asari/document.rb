@@ -60,15 +60,10 @@ class Asari
     # Return this object as a hash
     def to_hash
       @fields.delete_if {|key,val| val.nil?}
-      h = {
-          :type => @type,
-          :id => @id,
-          :version => @version
-      }
+      h = { type: @type, id: @id }
 
       unless @type == 'delete'
         h[:fields] = @fields
-        h[:lang] = @lang
       end
 
       h

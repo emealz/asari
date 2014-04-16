@@ -126,6 +126,7 @@ class Asari
   def add_item(obj, fields)
     return nil if self.class.mode == :sandbox
     query = { "type" => "add", "id" => obj.id.to_s, "version" => Time.now.to_i, "lang" => "en" }
+
     fields.each do |k,v|
       fields[k] = convert_date_or_time(fields[k])
       fields[k] = "" if v.nil?
@@ -199,11 +200,12 @@ class Asari
     nil
   end
 
-  def doc_batch(doc_batch)
+  def doc_batch(batch)
     url = "http://doc-#{search_domain}.#{aws_region}.cloudsearch.amazonaws.com/#{api_version}/documents/batch"
-    response = HTTParty.post(url, body: doc_batch.to_json, headers: { 'Content-Type' => 'application/json' })
+    response = HTTParty.post(url, body: batch.to_json, headers: { 'Content-Type' => 'application/json' })
 
-    raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{response.body[:errors].size} errors: #{response.body[:errors].join(';')}") if response.body[:status] == 'error'
+    parsed_body = JSON.parse(response.body).symbolize_keys!
+    raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{parsed_body[:errors].size} errors: #{parsed_body[:errors].join(';')}") if parsed_body[:status] == 'error'
 
     response.body
   end
