@@ -228,7 +228,14 @@ class Asari
           if value.is_a?(Range) || value.is_a?(Integer)
             memo += " #{key}:#{value}"
           else
-            memo += " #{key}:'#{value}'" unless value.to_s.empty?
+            string_value = value.to_s
+
+            if string_value.include?(',')
+              string_value = string_value[1..-2].split(',').collect! {|n| n.to_i}
+              memo += " (range field=#{key} #{value})" unless string_value.empty?
+            else
+              memo += " #{key}:'#{value}'" unless string_value.empty?
+            end
           end
         end
         memo
