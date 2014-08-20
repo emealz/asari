@@ -226,7 +226,7 @@ class Asari
           memo += "(#{key}#{sub_query})" unless sub_query.empty?
         else
           if value.is_a?(Range) || value.is_a?(Integer)
-            memo += " #{key}:#{value}"
+            memo += " (term field=#{key} #{value})"
           else
             if value.is_a?(Array)
               memo += " (range field=#{key} #{value.map(&:to_i)})" unless value.empty?
