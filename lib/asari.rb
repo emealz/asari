@@ -81,6 +81,7 @@ class Asari
     end
 
     url += "&size=#{page_size}"
+    url += "&q.options=#{CGI.escape(options[:options])}" if options[:options]
     url += "&return=#{options[:return].join ','}" if options[:return]
 
     if options[:page]
