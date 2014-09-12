@@ -89,9 +89,9 @@ class Asari
       url << "&start=#{start}"
     end
 
-    if options[:rank]
-      rank = normalize_rank(options[:rank])
-      url << "&rank=#{rank}"
+    if options[:sort]
+      sort = normalize_sort(options[:sort])
+      url << "&sort=#{sort}"
     end
 
     begin
@@ -230,9 +230,9 @@ class Asari
             memo += " (term field=#{key} #{value})"
           else
             if value.is_a?(Array)
-              memo += " (range field=#{key} #{value.map(&:to_i)})" unless value.empty?
+              memo += " (range field=#{key} #{value})" unless value.empty?
             else
-              memo += " #{key}:'#{value}'" unless value.empty?
+              memo += " (term field=#{key} '#{value}')" unless value.empty?
             end
           end
         end
@@ -242,10 +242,10 @@ class Asari
     reduce.call(terms)
   end
 
-  def normalize_rank(rank)
-    rank = Array(rank)
-    rank << :asc if rank.size < 2
-    rank[1] == :desc ? "-#{rank[0]}" : rank[0]
+  def normalize_sort(sort)
+    sort = Array(sort)
+    sort << :asc if sort.size < 2
+    sort[1] == :desc ? CGI.escape("#{sort[0]} desc") : sort[0]
   end
 
   def convert_date_or_time(obj)
