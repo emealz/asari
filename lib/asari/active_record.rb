@@ -88,7 +88,7 @@ class Asari
         end
         data = {}
         self.asari_fields.each do |field|
-          data[field] = obj.send(field) if obj.send(field).present?
+          data[field] = obj.send(field)
         end
         self.asari_instance.add_item(obj, data)
       rescue Asari::DocumentUpdateException => e
@@ -106,7 +106,7 @@ class Asari
         end
         data = {}
         self.asari_fields.each do |field|
-          data[field] = obj.send(field) if obj.send(field).present?
+          data[field] = obj.send(field)
         end
         self.asari_instance.update_item(obj, data)
       rescue Asari::DocumentUpdateException => e
