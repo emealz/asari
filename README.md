@@ -189,6 +189,58 @@ ActiveRecord model:
       ...
     end
 
+## Batch add results
+
+desc "Add all recipes in cloudsearch domain"
+task :batch_add_all => :environment do
+asari = Asari.new(ENV["CLOUD_SEARCH_URL"])
+Asari.mode = :production
+
+count = 0
+current_page = 1
+per_page = 4000
+recipe_pages = (Recipe.count.to_f / per_page.to_f).ceil
+
+while current_page <= recipe_pages
+puts "processing page: #{current_page}"
+
+recipes_for_page = Recipe.with_content.where("cloud_search_created_at IS NULL").page(current_page).per(per_page)
+batch = Asari::DocumentBatch.new
+
+recipes_for_page.each do |recipe|
+doc = Asari::Document.new(true)
+
+doc.id = recipe.id
+doc.add_field :title, recipe.title
+
+batch.add_document doc
+
+count += 1
+end
+
+recipes_for_page.update_all(cloud_search_created_at: Time.zone.now)
+
+current_page += 1
+
+result = asari.doc_batch(batch)
+
+if result.blank?
+puts "#{recipes_for_page.count} recipes uploaded"
+recipes_for_page.
+update_all(
+{
+cloud_search_created_at: DateTime.now,
+cloud_search_updated_at: DateTime.now
+}
+)
+else
+puts result
+end
+end
+
+puts "added #{count} recipes"
+end
+
 ## Get it
 
 It's a gem named asari. Install it and make it available however you prefer.
