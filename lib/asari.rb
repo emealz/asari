@@ -223,8 +223,14 @@ class Asari
     reduce = lambda { |hash|
       hash.reduce("") do |memo, (key, value)|
         if %w(and or not).include?(key.to_s) && value.is_a?(Hash)
-          sub_query = reduce.call(value)
-          memo += "(#{key}#{sub_query})" unless sub_query.empty?
+          if key.to_s == "and"
+            sub_query = reduce.call(value)
+            memo += "(#{key}#{sub_query})" unless sub_query.empty?
+          elsif key.to_s == "or"
+            value.each do |k, v|
+              memo += "(#{key} #{v.collect {|e| "'" + e + "'" }.join(" ")})"
+            end
+          end
         else
           if value.is_a?(Range) || value.is_a?(Integer)
             memo += " (term field=#{key} #{value})"
@@ -236,6 +242,7 @@ class Asari
             end
           end
         end
+
         memo
       end
     }
