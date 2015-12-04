@@ -236,7 +236,7 @@ class Asari
             memo += " (term field=#{key} #{value})"
           else
             if value.is_a?(Array)
-              memo += " (range field=#{key} #{value.map(&:to_i)})" unless value.empty?
+              memo += " (range field=#{key} #{value})" unless value.empty?
             else
               memo += " #{key}:'#{value}'" unless value.empty?
             end
