@@ -207,7 +207,7 @@ class Asari
 
     if response.present? && response.body.present?
       parsed_body = JSON.parse(response.body).symbolize_keys!
-      raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{parsed_body[:errors].size} errors: #{parsed_body[:errors].join(';')}") if parsed_body[:status] == 'error'
+      raise(Exception, "AwsCloudSearchCloud::DocumentService batch returned #{parsed_body[:errors].size} errors: #{parsed_body}") if parsed_body[:status] == 'error'
     end
 
     response.body
